@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Analysis - Multi-Sheet Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        .file-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .sheet-selector {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e9f7fe;
+            border-radius: 5px;
+        }
+        .sheet-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        .sheet-tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #f1f1f1;
+            margin-right: 5px;
+            border-radius: 5px 5px 0 0;
+        }
+        .sheet-tab.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .sheet-content {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 0 0 5px 5px;
+            margin-bottom: 30px;
+        }
+        .sheet-content.active {
+            display: block;
+        }
+        .question-answer {
+            margin-bottom: 30px;
+        }
+        .question {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .answer {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #4CAF50;
+            margin-bottom: 20px;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .data-table th {
+            background-color: #f2f2f2;
+        }
+        .data-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .analysis-section {
+            margin-bottom: 30px;
+        }
+        .analysis-section h3 {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        .cross-sheet {
+            background-color: #fff8e1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .error-report {
+            background-color: #ffebee;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .trend-report {
+            background-color: #e8f5e9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        form {
+            margin: 20px 0;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 80px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .history-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+        }
+        .history-question {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Excel File Analysis - Multiple Sheets</h1>
+   
+    <div class="file-info">
+        <h2>File: {{ filename }}</h2>
+        <p>This file contains {{ sheet_names|length }} sheets: {{ sheet_names|join(', ') }}</p>
+    </div>
+
+
+    <div class="sheet-selector">
+        <form action="{{ url_for('switch_sheet') }}" method="post">
+            <label for="sheet_name">Switch to single sheet view:</label>
+            <select name="sheet_name" id="sheet_name">
+                {% for sheet in sheet_names %}
+                    <option value="{{ sheet }}">{{ sheet }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">View Single Sheet</button>
+        </form>
+    </div>
+
+
+    <div class="question-answer">
+        <div class="question">Your question: {{ question }}</div>
+        <div class="answer">{{ answer|safe }}</div>
+    </div>
+
+
+    {% if analysis_results.cross_sheet_analysis %}
+    <div class="analysis-section">
+        <h2>Cross-Sheet Analysis</h2>
+        <div class="cross-sheet">
+            {{ analysis_results.cross_sheet_analysis|replace('\n', '<br>')|safe }}
+        </div>
+    </div>
+    {% endif %}
+
+
+    <div class="sheet-tabs">
+        {% for sheet in sheet_names %}
+            <div class="sheet-tab {% if loop.first %}active{% endif %}" onclick="showSheet('{{ sheet }}')">
+                {{ sheet }} ({{ analysis_results.individual_sheets[sheet].shape[0] }} rows × {{ analysis_results.individual_sheets[sheet].shape[1] }} cols)
+            </div>
+        {% endfor %}
+    </div>
+
+
+    {% for sheet in sheet_names %}
+    <div id="sheet-{{ sheet }}" class="sheet-content {% if loop.first %}active{% endif %}">
+        <h2>Sheet: {{ sheet }}</h2>
+       
+        <div class="analysis-section">
+            <h3>Data Preview</h3>
+            {{ tables_html[sheet]|safe }}
+        </div>
+
+
+        <div class="analysis-section">
+            <h3>Summary</h3>
+            <p>{{ analysis_results.individual_sheets[sheet].summary|replace('\n', '<br>')|safe }}</p>
+        </div>
+
+
+        {% if analysis_results.individual_sheets[sheet].errors != "No obvious errors detected." %}
+        <div class="analysis-section">
+            <h3>Error Report</h3>
+            <div class="error-report">
+                {{ analysis_results.individual_sheets[sheet].errors|replace('\n', '<br>')|safe }}
+            </div>
+        </div>
+        {% endif %}
+
+
+        {% if analysis_results.individual_sheets[sheet].trends != "No clear time-series trends detected." %}
+        <div class="analysis-section">
+            <h3>Trend Analysis</h3>
+            <div class="trend-report">
+                {{ analysis_results.individual_sheets[sheet].trends|replace('\n', '<br>')|safe }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+
+    <div class="analysis-section">
+        <h2>Ask Another Question</h2>
+        <form action="{{ url_for('ask_another') }}" method="post">
+            <textarea name="user_question" placeholder="Ask another question about this data..." required></textarea>
+            <button type="submit">Submit Question</button>
+        </form>
+    </div>
+
+
+    {% if qa_history|length > 1 %}
+    <div class="analysis-section">
+        <h2>Question History</h2>
+        {% for item in qa_history[-2::-1] %}
+            <div class="history-item">
+                <div class="history-question">{{ item.question }}</div>
+                <div class="history-answer">{{ item.answer|safe }}</div>
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+
+    <div style="margin-top: 40px;">
+        <a href="{{ url_for('home') }}">Analyze another file</a>
+    </div>
+
+
+    <script>
+        function showSheet(sheetName) {
+            // Hide all sheet contents
+            document.querySelectorAll('.sheet-content').forEach(content => {
+                content.classList.remove('active');
+            });
+           
+            // Show selected sheet content
+            document.getElementById('sheet-' + sheetName).classList.add('active');
+           
+            // Update active tab
+            document.querySelectorAll('.sheet-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+        }
+    </script>
+</body>
+</html>
