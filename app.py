@@ -25,7 +25,7 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.config['SESSION_PERMANENT'] = False
 
 
-genai.configure(api_key="AIzaSyCxnBvgM-EJyQblgahPSKGTvr5iI-sb51c")
+genai.configure(api_key="gemini-api-key")
 
 
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
